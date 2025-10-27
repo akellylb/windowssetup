@@ -46,8 +46,16 @@ function Install-Winget {
     }
 }
 
+# Cloudflare R2 base URL for custom software
+$R2_BASE_URL = "https://pub-xxxxx.r2.dev"  # Replace with your R2 bucket URL or custom domain
+
 # Software catalog with winget package IDs
 $softwareCatalog = @{
+    "Custom Software" = @(
+        @{ Name = "Example App 1"; ID = "CUSTOM_APP1"; URL = "$R2_BASE_URL/app1-installer.exe"; Silent = $true; SilentArgs = "/S" }
+        @{ Name = "Example App 2"; ID = "CUSTOM_APP2"; URL = "$R2_BASE_URL/app2-setup.msi"; Silent = $true; SilentArgs = "/quiet /norestart" }
+        @{ Name = "Example Script"; ID = "CUSTOM_SCRIPT1"; URL = "$R2_BASE_URL/script.ps1"; Silent = $false; SilentArgs = "" }
+    )
     "Browsers" = @(
         @{ Name = "Google Chrome"; ID = "Google.Chrome" }
         @{ Name = "Mozilla Firefox"; ID = "Mozilla.Firefox" }
@@ -168,8 +176,26 @@ function Install-SelectedSoftware {
         Write-Host "Installing: $($package.Name)..." -ForegroundColor Yellow
 
         try {
+            # Handle custom software from R2 bucket
+            if ($package.ID -match '^CUSTOM_') {
+                $installed = Install-CustomSoftware -Name $package.Name -URL $package.URL -Silent $package.Silent -SilentArgs $package.SilentArgs
+                if ($installed) {
+                    $successCount++
+                    $results += [PSCustomObject]@{
+                        Name = $package.Name
+                        Status = "Success"
+                    }
+                }
+                else {
+                    $failCount++
+                    $results += [PSCustomObject]@{
+                        Name = $package.Name
+                        Status = "Failed"
+                    }
+                }
+            }
             # Handle custom TeamViewer Long Branch installer
-            if ($package.ID -eq "TEAMVIEWER_LONGBRANCH_CUSTOM") {
+            elseif ($package.ID -eq "TEAMVIEWER_LONGBRANCH_CUSTOM") {
                 $installed = Install-TeamViewerDirect
                 if ($installed) {
                     $successCount++
@@ -299,6 +325,79 @@ function Set-ChromeAsDefaultBrowser {
     }
     catch {
         Write-Host "  Failed to set Chrome as default: $_" -ForegroundColor Red
+        return $false
+    }
+}
+
+# Install custom software from R2 bucket
+function Install-CustomSoftware {
+    param (
+        [string]$Name,
+        [string]$URL,
+        [bool]$Silent = $true,
+        [string]$SilentArgs = "/S"
+    )
+
+    Write-Host "`nDownloading $Name..." -ForegroundColor Cyan
+
+    try {
+        # Create temp directory
+        $tempDir = "$env:TEMP\CustomSoftwareInstall"
+        if (-not (Test-Path $tempDir)) {
+            New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+        }
+
+        # Get file extension from URL
+        $fileName = [System.IO.Path]::GetFileName($URL)
+        if (-not $fileName -or $fileName -notmatch '\.\w+$') {
+            $fileName = "installer.exe"
+        }
+        $installerPath = "$tempDir\$fileName"
+
+        # Download file
+        Write-Host "  Downloading from $URL..." -ForegroundColor Yellow
+        Invoke-WebRequest -Uri $URL -OutFile $installerPath -UseBasicParsing -ErrorAction Stop
+        Write-Host "  Download completed!" -ForegroundColor Green
+
+        # Check if it's a PowerShell script
+        if ($fileName -match '\.ps1$') {
+            Write-Host "  Executing PowerShell script..." -ForegroundColor Yellow
+            & $installerPath
+            Write-Host "  Script executed!" -ForegroundColor Green
+        }
+        else {
+            # Run installer
+            if ($Silent) {
+                Write-Host "  Installing $Name silently..." -ForegroundColor Yellow
+                $process = Start-Process -FilePath $installerPath -ArgumentList $SilentArgs -Wait -PassThru -NoNewWindow -ErrorAction Stop
+
+                if ($process.ExitCode -eq 0) {
+                    Write-Host "  $Name installed successfully!" -ForegroundColor Green
+                }
+                else {
+                    Write-Host "  $Name installation completed with exit code: $($process.ExitCode)" -ForegroundColor Yellow
+                }
+            }
+            else {
+                Write-Host "  Launching $Name installer..." -ForegroundColor Yellow
+                Write-Host "  Please complete the installation in the window that opens." -ForegroundColor Cyan
+                Start-Process -FilePath $installerPath
+                Write-Host "  Installer launched!" -ForegroundColor Green
+            }
+        }
+
+        # Cleanup (only if silent install)
+        if ($Silent -and $fileName -notmatch '\.ps1$') {
+            Start-Sleep -Seconds 2
+            Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Host "  Cleanup completed." -ForegroundColor Green
+        }
+
+        return $true
+    }
+    catch {
+        Write-Host "  Failed to install $Name : $_" -ForegroundColor Red
+        Write-Host "  You can download manually from: $URL" -ForegroundColor Yellow
         return $false
     }
 }
