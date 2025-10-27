@@ -7,10 +7,8 @@ Interactive software installer using Windows Package Manager (Winget).
 Run this command in PowerShell (as Administrator):
 
 ```powershell
-iwr -useb https://setup.yourdomain.com/setup.ps1 | iex
+iwr -useb https://setup.longbranchit.org/setup.ps1 | iex
 ```
-
-Replace `yourdomain.com` with your actual domain after deployment.
 
 ## Features
 
