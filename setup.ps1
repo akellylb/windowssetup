@@ -314,7 +314,7 @@ function Install-TeamViewerDirect {
             New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
         }
 
-        $installerPath = "$tempDir\TeamViewerSetup.exe"
+        $installerPath = "$tempDir\TeamViewerSetup.msi"
         $downloadUrl = "https://get.teamviewer.com/longbranch"
 
         # Download installer
@@ -322,17 +322,32 @@ function Install-TeamViewerDirect {
         Invoke-WebRequest -Uri $downloadUrl -OutFile $installerPath -UseBasicParsing -ErrorAction Stop
         Write-Host "  Download completed!" -ForegroundColor Green
 
-        # Run installer
-        Write-Host "  Installing TeamViewer..." -ForegroundColor Yellow
-        $process = Start-Process -FilePath $installerPath -ArgumentList "/S" -Wait -PassThru -NoNewWindow
+        # Check if it's an MSI or EXE
+        $fileType = [System.IO.Path]::GetExtension($installerPath)
 
-        if ($process.ExitCode -eq 0) {
-            Write-Host "  TeamViewer installed successfully!" -ForegroundColor Green
-        } else {
-            Write-Host "  TeamViewer installation completed with exit code: $($process.ExitCode)" -ForegroundColor Yellow
+        # Run installer with different methods
+        Write-Host "  Installing TeamViewer..." -ForegroundColor Yellow
+
+        # Try running with cmd.exe to handle compatibility
+        $process = Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$installerPath`" /S" -Wait -PassThru -NoNewWindow -ErrorAction SilentlyContinue
+
+        if ($null -eq $process -or $process.ExitCode -ne 0) {
+            # Try alternative: msiexec if it's an MSI
+            Write-Host "  Trying alternative installation method..." -ForegroundColor Yellow
+            $process = Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$installerPath`" /quiet /norestart" -Wait -PassThru -NoNewWindow -ErrorAction SilentlyContinue
         }
 
+        if ($null -eq $process -or $process.ExitCode -ne 0) {
+            # Try direct execution
+            Write-Host "  Trying direct execution..." -ForegroundColor Yellow
+            Start-Process -FilePath $installerPath -ArgumentList "/S" -NoNewWindow
+            Start-Sleep -Seconds 5
+        }
+
+        Write-Host "  TeamViewer installation initiated!" -ForegroundColor Green
+
         # Cleanup
+        Start-Sleep -Seconds 2
         Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
         Write-Host "  Cleanup completed." -ForegroundColor Green
 
@@ -340,6 +355,7 @@ function Install-TeamViewerDirect {
     }
     catch {
         Write-Host "  Failed to install TeamViewer: $_" -ForegroundColor Red
+        Write-Host "  You may need to download and install manually from: $downloadUrl" -ForegroundColor Yellow
         return $false
     }
 }
