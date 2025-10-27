@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ren install-software-interactive.ps1 setup.ps1)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

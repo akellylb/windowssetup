@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows Setup Script</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .command {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+        .copy-btn {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .copy-btn:hover {
+            background: #005a9e;
+        }
+        .note {
+            background: #fff4ce;
+            padding: 15px;
+            border-left: 4px solid #ffb900;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Windows Setup Script</h1>
+        <p>Interactive software installer using Windows Package Manager (Winget)</p>
+
+        <h2>Quick Install</h2>
+        <p>Copy and paste this command into PowerShell (Run as Administrator):</p>
+
+        <div class="command" id="command">iwr -useb https://setup.yourdomain.com/setup.ps1 | iex</div>
+        <button class="copy-btn" onclick="copyCommand()">Copy Command</button>
+
+        <div class="note">
+            <strong>Note:</strong> Replace <code>yourdomain.com</code> with your actual domain after deployment.
+        </div>
+
+        <h2>What This Script Does</h2>
+        <ul>
+            <li>Installs software using Windows Package Manager (Winget)</li>
+            <li>Interactive menu to choose applications</li>
+            <li>Supports 30+ popular applications</li>
+            <li>Can set Chrome as default browser</li>
+            <li>Can set Adobe Reader as default PDF viewer</li>
+            <li>Option to install TeamViewer</li>
+        </ul>
+
+        <h2>Manual Download</h2>
+        <p><a href="setup.ps1" download>Download setup.ps1</a></p>
+    </div>
+
+    <script>
+        function copyCommand() {
+            const command = document.getElementById('command').textContent;
+            navigator.clipboard.writeText(command).then(() => {
+                alert('Command copied to clipboard!');
+            });
+        }
+    </script>
+</body>
+</html>
