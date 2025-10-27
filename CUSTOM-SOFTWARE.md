@@ -2,28 +2,58 @@
 
 This guide explains how to add your own custom software to the installer using Cloudflare R2.
 
-## Setup Cloudflare R2
+## Setup Cloudflare R2 (Private + Authenticated)
+
+### Step 1: Create Private R2 Bucket
 
 1. **Create R2 Bucket:**
    - Go to https://dash.cloudflare.com
    - Click **R2** → **Create bucket**
-   - Name it: `software` or `installers`
+   - Name it: `software`
    - Click **Create bucket**
 
-2. **Enable Public Access:**
-   - Click on your bucket → **Settings**
-   - Under **Public access** → Click **Allow Access**
-   - Copy your R2 public URL (e.g., `https://pub-xxxxx.r2.dev`)
+2. **Keep it PRIVATE:**
+   - **DO NOT enable public access** ✅
+   - Files will only be accessible via authenticated Worker
 
-3. **Optional - Add Custom Domain:**
-   - Go to **Settings** → **Custom Domains**
-   - Click **Add custom domain**
-   - Enter: `files.longbranchit.org`
-   - Cloudflare will auto-configure DNS
+### Step 2: Deploy Password-Protected Worker
 
-4. **Update Script:**
-   - Edit `setup.ps1` line 50
-   - Replace `$R2_BASE_URL` with your R2 URL or custom domain
+1. **Create Worker:**
+   - Go to **Workers & Pages** → **Create Worker**
+   - Name it: `downloads` or `software-auth`
+   - Click **Deploy**
+
+2. **Add Worker Code:**
+   - Click **Edit Code**
+   - Delete default code
+   - Paste code from `r2-auth-worker.js`
+   - **Line 8:** Change password to something secure
+     ```javascript
+     const PASSWORD = "YourSecurePassword123!";
+     ```
+   - Click **Save and Deploy**
+
+3. **Bind R2 Bucket:**
+   - Go to Worker **Settings** → **Variables**
+   - Scroll to **R2 Bucket Bindings**
+   - Click **Add binding**
+     - Variable name: `R2_BUCKET`
+     - R2 bucket: `software`
+   - Click **Save**
+
+4. **Get Worker URL:**
+   - Copy your Worker URL (e.g., `https://downloads.YOUR-ACCOUNT.workers.dev`)
+
+### Step 3: Update setup.ps1
+
+Edit `setup.ps1` lines 50-51:
+
+```powershell
+$R2_BASE_URL = "https://downloads.YOUR-ACCOUNT.workers.dev"
+$R2_AUTH_KEY = "YourSecurePassword123!"
+```
+
+**Important:** The password is embedded in the script. Keep your GitHub repo **private** if you use sensitive passwords, or use a less sensitive password for internal tools.
 
 ## Adding Custom Software
 
@@ -43,19 +73,21 @@ Edit `setup.ps1` around line 54-58 in the "Custom Software" section:
     @{
         Name = "My Custom App";
         ID = "CUSTOM_MYAPP";
-        URL = "$R2_BASE_URL/myapp-installer.exe";
+        URL = "$R2_BASE_URL/myapp-installer.exe?key=$R2_AUTH_KEY";
         Silent = $true;
         SilentArgs = "/S"
     }
     @{
         Name = "Another App";
         ID = "CUSTOM_ANOTHERAPP";
-        URL = "$R2_BASE_URL/anotherapp-setup.msi";
+        URL = "$R2_BASE_URL/anotherapp-setup.msi?key=$R2_AUTH_KEY";
         Silent = $true;
         SilentArgs = "/quiet /norestart"
     }
 )
 ```
+
+**Note:** The `?key=$R2_AUTH_KEY` automatically adds authentication to each download URL.
 
 ## Software Entry Format
 

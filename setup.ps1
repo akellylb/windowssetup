@@ -46,15 +46,16 @@ function Install-Winget {
     }
 }
 
-# Cloudflare R2 base URL for custom software
-$R2_BASE_URL = "https://pub-xxxxx.r2.dev"  # Replace with your R2 bucket URL or custom domain
+# Cloudflare Worker URL for authenticated custom software downloads
+$R2_BASE_URL = "https://downloads.YOUR-ACCOUNT.workers.dev"  # Replace with your Worker URL
+$R2_AUTH_KEY = "your-secure-password-here"  # Replace with your password from Worker
 
 # Software catalog with winget package IDs
 $softwareCatalog = @{
     "Custom Software" = @(
-        @{ Name = "Example App 1"; ID = "CUSTOM_APP1"; URL = "$R2_BASE_URL/app1-installer.exe"; Silent = $true; SilentArgs = "/S" }
-        @{ Name = "Example App 2"; ID = "CUSTOM_APP2"; URL = "$R2_BASE_URL/app2-setup.msi"; Silent = $true; SilentArgs = "/quiet /norestart" }
-        @{ Name = "Example Script"; ID = "CUSTOM_SCRIPT1"; URL = "$R2_BASE_URL/script.ps1"; Silent = $false; SilentArgs = "" }
+        @{ Name = "Example App 1"; ID = "CUSTOM_APP1"; URL = "$R2_BASE_URL/app1-installer.exe?key=$R2_AUTH_KEY"; Silent = $true; SilentArgs = "/S" }
+        @{ Name = "Example App 2"; ID = "CUSTOM_APP2"; URL = "$R2_BASE_URL/app2-setup.msi?key=$R2_AUTH_KEY"; Silent = $true; SilentArgs = "/quiet /norestart" }
+        @{ Name = "Example Script"; ID = "CUSTOM_SCRIPT1"; URL = "$R2_BASE_URL/script.ps1?key=$R2_AUTH_KEY"; Silent = $false; SilentArgs = "" }
     )
     "Browsers" = @(
         @{ Name = "Google Chrome"; ID = "Google.Chrome" }
