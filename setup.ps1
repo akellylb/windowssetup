@@ -88,6 +88,7 @@ $softwareCatalog = @{
     )
     "Remote Access" = @(
         @{ Name = "TeamViewer"; ID = "TeamViewer.TeamViewer" }
+        @{ Name = "TeamViewer (Long Branch)"; ID = "TEAMVIEWER_LONGBRANCH_CUSTOM" }
         @{ Name = "AnyDesk"; ID = "AnyDeskSoftwareGmbH.AnyDesk" }
     )
 }
@@ -167,22 +168,43 @@ function Install-SelectedSoftware {
         Write-Host "Installing: $($package.Name)..." -ForegroundColor Yellow
 
         try {
-            $process = Start-Process -FilePath "winget" -ArgumentList "install --id $($package.ID) --silent --accept-package-agreements --accept-source-agreements" -Wait -PassThru -NoNewWindow
-
-            if ($process.ExitCode -eq 0) {
-                Write-Host "  SUCCESS: $($package.Name)" -ForegroundColor Green
-                $successCount++
-                $results += [PSCustomObject]@{
-                    Name = $package.Name
-                    Status = "Success"
+            # Handle custom TeamViewer Long Branch installer
+            if ($package.ID -eq "TEAMVIEWER_LONGBRANCH_CUSTOM") {
+                $installed = Install-TeamViewerDirect
+                if ($installed) {
+                    $successCount++
+                    $results += [PSCustomObject]@{
+                        Name = $package.Name
+                        Status = "Success"
+                    }
+                }
+                else {
+                    $failCount++
+                    $results += [PSCustomObject]@{
+                        Name = $package.Name
+                        Status = "Failed"
+                    }
                 }
             }
             else {
-                Write-Host "  FAILED: $($package.Name) (Exit Code: $($process.ExitCode))" -ForegroundColor Red
-                $failCount++
-                $results += [PSCustomObject]@{
-                    Name = $package.Name
-                    Status = "Failed (Exit Code: $($process.ExitCode))"
+                # Standard winget installation
+                $process = Start-Process -FilePath "winget" -ArgumentList "install --id $($package.ID) --silent --accept-package-agreements --accept-source-agreements" -Wait -PassThru -NoNewWindow
+
+                if ($process.ExitCode -eq 0) {
+                    Write-Host "  SUCCESS: $($package.Name)" -ForegroundColor Green
+                    $successCount++
+                    $results += [PSCustomObject]@{
+                        Name = $package.Name
+                        Status = "Success"
+                    }
+                }
+                else {
+                    Write-Host "  FAILED: $($package.Name) (Exit Code: $($process.ExitCode))" -ForegroundColor Red
+                    $failCount++
+                    $results += [PSCustomObject]@{
+                        Name = $package.Name
+                        Status = "Failed (Exit Code: $($process.ExitCode))"
+                    }
                 }
             }
         }
@@ -436,14 +458,6 @@ try {
                 if ($setAdobeDefault -eq 'Y' -or $setAdobeDefault -eq 'y') {
                     Set-AdobeAsDefaultPDF
                 }
-            }
-
-            # Ask if user wants to install TeamViewer from direct link
-            Write-Host ""
-            Write-Host -NoNewline "Install TeamViewer (from get.teamviewer.com/longbranch)? (Y/N): " -ForegroundColor Cyan
-            $installTV = Read-Host
-            if ($installTV -eq 'Y' -or $installTV -eq 'y') {
-                Install-TeamViewerDirect
             }
         }
         else {
